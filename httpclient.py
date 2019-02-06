@@ -31,6 +31,9 @@ class HTTPResponse(object):
     def __init__(self, code=200, body=""):
         self.code = code
         self.body = body
+    
+    def __str__(self):
+        return self.body
 
 class HTTPClient(object):
     #def get_host_port(self,url):
@@ -65,17 +68,109 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8')
+        return buffer.decode('utf-8', 'ignore')
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
-        return HTTPResponse(code, body)
+        # Must create the get request here at the target URL
+
+        # Compose the GET Request
+        # GET / HTTP/1.1
+        # Host: google.com
+        # User-Agent: curl/7.47.0
+        # Accept: */*
+
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path
+        if path == "":
+            path = "/"
+        request = "GET " + path + " HTTP/1.1\n"
+
+        # should this be parse.netloc or parsed.hostname
+        host ="Host: " + parsed.hostname + "\n"
+        
+        # If no port given use the default port
+        port = parsed.port
+        if port == None:
+            port = 80
+
+        # We can say whatever we want for this I guess lol, could we spoof chrome so we dont get blocked? is that even allowed?
+        userAgent = "User-Agent: benWebClientAssignment\n"
+
+        # Accept, anything special needed here?
+        accept = "Accept: */*\n"
+        
+        # Close the connection
+        close = "Connection: close\n\r\n"
+
+        # Format our request
+        body = request + host + userAgent + accept + close
+        
+        # Connect to the host, send body, recieve response
+        self.connect(parsed.hostname, port)
+        self.sendall(body)
+        response = self.recvall(self.socket)
+        self.close()
+
+        # We want to return the HTTP response from the server
+        # We want this response to be formatted as an HTTPResponse object
+        # So we should format it here
+        response = response.splitlines()
+        code = int(response[0].split()[1])
+        body = response[-1]
+
+        # Body is everything after the headers
+        return HTTPResponse(code,body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
-        return HTTPResponse(code, body)
+        # Must create the get request here at the target URL
+
+        # Compose the GET Request
+        # GET / HTTP/1.1
+        # Host: google.com
+        # User-Agent: curl/7.47.0
+        # Accept: */*
+
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path
+        if path == "":
+            path = "/"
+        request = "POST " + path + " HTTP/1.1\n"
+
+        # should this be parse.netloc or parsed.hostname
+        host ="Host: " + parsed.hostname + "\n"
+        
+        # If no port given use the default port
+        port = parsed.port
+        if port == None:
+            port = 80
+
+        # We can say whatever we want for this I guess lol, could we spoof chrome so we dont get blocked? is that even allowed?
+        userAgent = "User-Agent: benWebClientAssignment\n"
+
+        # Accept, anything special needed here?
+        accept = "Accept: */*\n"
+        
+        # Close the connection
+        close = "Connection: close\n\r\n"
+
+        # Format our request
+        body = request + host + userAgent + accept + close
+        
+        # Connect to the host, send body, recieve response
+        self.connect(parsed.hostname, port)
+        self.sendall(body)
+        response = self.recvall(self.socket)
+        self.close()
+
+        # We want to return the HTTP response from the server
+        # We want this response to be formatted as an HTTPResponse object
+        # So we should format it here
+        response = response.splitlines()
+        code = int(response[0].split()[1])
+        body = response[-1]
+
+        # Body is everything after the headers
+        return HTTPResponse(code,body)
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
