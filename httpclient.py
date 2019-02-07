@@ -177,6 +177,7 @@ class HTTPClient(object):
         if type(args) is dict:
             content = urllib.parse.urlencode(args)
 
+        # Else it is a string, otherwise we are gonna crash, can only handle strings and dicts
         else:
             content = args
 
