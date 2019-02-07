@@ -79,6 +79,8 @@ class HTTPClient(object):
         # User-Agent: curl/7.47.0
         # Accept: */*
 
+        # print(args, url)
+
         parsed = urllib.parse.urlparse(url)
         path = parsed.path
         if path == "":
@@ -116,7 +118,10 @@ class HTTPClient(object):
         # So we should format it here
         response = response.splitlines()
         code = int(response[0].split()[1])
-        body = response[-1]
+        
+        # So the body is everything after the first empty line, ""
+        index = response.index("")
+        body = "".join(response[index+1:])
 
         # Body is everything after the headers
         return HTTPResponse(code,body)
@@ -124,13 +129,18 @@ class HTTPClient(object):
     def POST(self, url, args=None):
         # Must create the get request here at the target URL
 
-        # Compose the GET Request
-        # GET / HTTP/1.1
+        # Compose the POST Request
+        # POST / HTTP/1.1
         # Host: google.com
         # User-Agent: curl/7.47.0
         # Accept: */*
+        #
+        #name=ben&hair=brown
+
+        # Must be able to post variables
 
         parsed = urllib.parse.urlparse(url)
+
         path = parsed.path
         if path == "":
             path = "/"
@@ -138,6 +148,8 @@ class HTTPClient(object):
 
         # should this be parse.netloc or parsed.hostname
         host ="Host: " + parsed.hostname + "\n"
+
+        contentType = "Content-Type: application/x-www-form-urlencoded\n"
         
         # If no port given use the default port
         port = parsed.port
@@ -151,29 +163,56 @@ class HTTPClient(object):
         accept = "Accept: */*\n"
         
         # Close the connection
+        # Will this have negative consequences regarding the post request?
         close = "Connection: close\n\r\n"
 
+        # Content is the args, so the single string form information input
+        # Should this be utf8 encoded? I dont think its necessary
+        # If args is None, so no content
+        if args == None:
+            args = ""
+
+        # If args is a dict, not a string, we must convert to query format
+        # encode invalid characters? %5Cn%5Cr
+        if type(args) is dict:
+            content = urllib.parse.urlencode(args)
+
+        else:
+            content = args
+
+        # contentLength = "Content-Length: 0\n"
+        # if args != None:
+        contentLength = "Content-Length: " + str(len(content)) + "\n"
+
         # Format our request
-        body = request + host + userAgent + accept + close
-        
+        # print(request, host, contentType, contentLength, userAgent, accept, close, content)
+        body = request + host + contentType + contentLength + userAgent + accept + close + content    
+
         # Connect to the host, send body, recieve response
         self.connect(parsed.hostname, port)
         self.sendall(body)
         response = self.recvall(self.socket)
         self.close()
+        # print(response)
 
         # We want to return the HTTP response from the server
         # We want this response to be formatted as an HTTPResponse object
         # So we should format it here
         response = response.splitlines()
         code = int(response[0].split()[1])
-        body = response[-1]
+
+        # So the body is everything after the first empty line, ""
+        index = response.index("")
+        body = "".join(response[index+1:])
 
         # Body is everything after the headers
         return HTTPResponse(code,body)
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
+            # Get the arguments in here
+            if args == None:
+                args = urllib.parse.urlparse(url).query
             return self.POST( url, args )
         else:
             return self.GET( url, args )
